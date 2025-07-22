@@ -1,0 +1,27 @@
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+
+interface Props {
+  onSelect: (glAccount: string) => void;
+}
+
+const GLFilter: React.FC<Props> = ({ onSelect }) => {
+  const [accounts, setAccounts] = useState<string[]>([]);
+
+  useEffect(() => {
+    axios.get('http://localhost:8000/gl-accounts').then(res => {
+      setAccounts(res.data.gl_accounts);
+    });
+  }, []);
+
+  return (
+    <select onChange={e => onSelect(e.target.value)}>
+      <option>Select G/L Account</option>
+      {accounts.map(a => (
+        <option key={a} value={a}>{a}</option>
+      ))}
+    </select>
+  );
+};
+
+export default GLFilter;
