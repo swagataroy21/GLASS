@@ -206,6 +206,113 @@ def drilldown_level_1(gl_account: str = Query(...), current_date: str = Query(No
         return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
 
 
+# -----------------------------
+# Drilldown II: Division + Ageing → Business Area
+# -----------------------------
+@app.get("/drilldown2")
+def drilldown_level_2(gl_account: str = Query(...), ageing: str = Query(...), division: str = Query(...), current_date: str = Query(None)):
+    try:
+        df = pl.read_parquet(PARQUET_FILE)
+        if current_date is None:
+            current_date = datetime.now().strftime("%Y-%m-%d")
+
+        df = df.filter(pl.col("G/L Account") == gl_account)
+        df = derive_columns(df, current_date)
+
+        df = df.filter((pl.col("Ageing") == ageing) & (pl.col("Division") == division))
+
+        grouped = (
+            df.groupby("Business Area")
+              .agg(pl.col("Amount in Local Currency").sum().alias("Total Amount"))
+              .sort("Total Amount", descending=True)
+        )
+
+        return {"columns": grouped.columns, "rows": grouped.to_dicts()}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+
+
+# -----------------------------
+# Drilldown III: All Divisions + Ageing + Business Area
+# -----------------------------
+@app.get("/drilldown3")
+def drilldown_level_3(gl_account: str = Query(...), ageing: str = Query(...), current_date: str = Query(None)):
+    try:
+        df = pl.read_parquet(PARQUET_FILE)
+        if current_date is None:
+            current_date = datetime.now().strftime("%Y-%m-%d")
+
+        df = df.filter(pl.col("G/L Account") == gl_account)
+        df = derive_columns(df, current_date)
+
+        df = df.filter(pl.col("Ageing") == ageing)
+
+        grouped = (
+            df.groupby(["Division", "Business Area"])
+              .agg(pl.col("Amount in Local Currency").sum().alias("Total Amount"))
+              .sort(["Division", "Business Area"])
+        )
+
+        return {"columns": grouped.columns, "rows": grouped.to_dicts()}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+
+
+# -----------------------------
+# Drilldown IV: Vendor, Customer, Document Type
+# -----------------------------
+@app.get("/drilldown4")
+def drilldown_level_4(gl_account: str = Query(...), ageing: str = Query(...), division: str = Query(...), business_area: str = Query(...), current_date: str = Query(None)):
+    try:
+        df = pl.read_parquet(PARQUET_FILE)
+        if current_date is None:
+            current_date = datetime.now().strftime("%Y-%m-%d")
+
+        df = df.filter(pl.col("G/L Account") == gl_account)
+        df = derive_columns(df, current_date)
+
+        df = df.filter(
+            (pl.col("Ageing") == ageing) &
+            (pl.col("Division") == division) &
+            (pl.col("Business Area") == business_area)
+        )
+
+        def blank_to_others(col):
+            return pl.when(pl.col(col).is_null() | (pl.col(col).str.strip_chars() == ""))
+                   .then("Others")
+                   .otherwise(pl.col(col))
+
+        df = df.with_columns([
+            blank_to_others("Vendor Code").alias("Vendor Code"),
+            blank_to_others("Vendor Name").alias("Vendor Name"),
+            blank_to_others("Customer Code").alias("Customer Code"),
+            blank_to_others("Customer Name").alias("Customer Name"),
+            blank_to_others("Document Type").alias("Document Type")
+        ])
+
+        vendor_grouped = df.groupby(["Vendor Code", "Vendor Name"]).agg(
+            pl.col("Amount in Local Currency").sum().alias("Total Amount")
+        ).sort("Total Amount", descending=True)
+
+        customer_grouped = df.groupby(["Customer Code", "Customer Name"]).agg(
+            pl.col("Amount in Local Currency").sum().alias("Total Amount")
+        ).sort("Total Amount", descending=True)
+
+        doc_type_grouped = df.groupby("Document Type").agg(
+            pl.col("Amount in Local Currency").sum().alias("Total Amount")
+        ).sort("Total Amount", descending=True)
+
+        return {
+            "vendors": vendor_grouped.to_dicts(),
+            "customers": customer_grouped.to_dicts(),
+            "document_types": doc_type_grouped.to_dicts()
+        }
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+
+
+
 # from fastapi import FastAPI, UploadFile, File, Form, Query
 # from fastapi.responses import JSONResponse
 # from fastapi.middleware.cors import CORSMiddleware
