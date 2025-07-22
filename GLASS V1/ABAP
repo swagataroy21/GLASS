@@ -383,3 +383,44 @@ FORM create_header.
 *  it_header-line = 'Ledger'.
 *  APPEND it_header.
 ENDFORM.
+
+
+ls_hdr-zuonr         = 'ZUONR'.
+  ls_hdr-belnr         = 'BELNR'.
+  ls_hdr-co_belnr      = 'CO_BELNR'.
+  ls_hdr-rbusa         = 'RBUSA'.
+  ls_hdr-blart         = 'BLART'.
+  ls_hdr-bldat         = 'BLDAT'.
+  ls_hdr-bschl         = 'BSCHL'.
+  ls_hdr-hsl           = 'HSL'.
+  ls_hdr-sgtxt         = 'SGTXT'.
+  ls_hdr-awref         = 'AWREF'.
+  ls_hdr-augbl         = 'AUGBL'.
+  ls_hdr-gjahr         = 'GJAHR'.
+  ls_hdr-rebzj         = 'REBZJ'.
+  ls_hdr-gkont         = 'GKONT'.
+  ls_hdr-lifnr         = 'LIFNR'.
+  ls_hdr-lifnr_name    = 'LIFNR_NAME'.
+  ls_hdr-kunnr         = 'KUNNR'.
+  ls_hdr-kunnr_name    = 'KUNNR_NAME'.
+  ls_hdr-racct         = 'RACCT'.
+  ls_hdr-koart         = 'KOART'.
+  ls_hdr-hktid         = 'HKTID'.
+  ls_hdr-rcntr         = 'RCNTR'.
+  ls_hdr-kdgrp         = 'KDGRP'.
+  ls_hdr-poper         = 'POPER'.
+  ls_hdr-prctr         = 'PRCTR'.
+  ls_hdr-umskz         = 'UMSKZ'.
+  ls_hdr-valut         = 'VALUT'.
+  ls_hdr-budat         = 'BUDAT'.
+  ls_hdr-awref_rev     = 'AWREF_REV'.
+  ls_hdr-awitem_rev    = 'AWITEM_REV'.
+  ls_hdr-usnam         = 'USNAM'.
+  ls_hdr-sbusa         = 'SBUSA'.
+  ls_hdr-rassc         = 'RASSC'.
+  ls_hdr-werks         = 'WERKS'.
+  ls_hdr-ebeln         = 'EBELN'.
+  ls_hdr-fiscyearper   = 'FISCYEARPER'.
+  ls_hdr-augdt         = 'AUGDT'.
+  ls_hdr-dabrz         = 'DABRZ'.
+  ls_hdr-rldnr         = 'RLDNR'.
