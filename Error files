@@ -98,7 +98,9 @@ const App: React.FC = () => {
   return (
     <div style={{ padding: 20 }}>
       <h2>ABAP Data Analyzer</h2>
-      <FileUpload />
+      <FileUpload onUploadSuccess={function (): void {
+        throw new Error('Function not implemented.');
+      } } />
       <GLFilter onSelect={handleGLSelect} />
 
       {summary && (
@@ -116,3 +118,33 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+
+Dashboard.tsx
+import React, { useState } from 'react';
+import FileUploader from '../components/FileUploader';
+import GLFilter from '../components/GLFilter';
+import DataTable from '../components/DataTable';
+
+const Dashboard: React.FC = () => {
+  const [fileUploaded, setFileUploaded] = useState(false);
+
+  return (
+    <div style={{ display: 'flex' }}>
+      <div style={{ flex: 1, padding: '1rem' }}>
+        <FileUploader onUploadSuccess={() => setFileUploaded(true)} />
+        {fileUploaded && <GLFilter onSelect={function (glAccount: string): void {
+          throw new Error('Function not implemented.');
+        } } />}
+      </div>
+
+      {/* Right side panel for AI summary */}
+      <div style={{ width: '300px', padding: '1rem', background: '#f9f9f9' }}>
+        <h3>AI Summary</h3>
+        <p>Select a drilldown to see AI insights.</p>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
