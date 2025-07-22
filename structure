@@ -1,0 +1,30 @@
+your-app/
+├── backend/
+│   ├── main.py                        # FastAPI app entry point
+│   ├── config.py                      # App-wide constants, paths, settings
+│   ├── models/                        # Pydantic models for request/response schemas
+│   ├── services/                      # Core logic (data processing, filtering, summaries)
+│   │   ├── file_handler.py            # File upload, conversion, and loading
+│   │   ├── filters.py                 # Filtering and G/L selection logic
+│   │   ├── transformations.py         # Ageing & division mapping
+│   │   ├── summaries.py               # Groupings, aggregations
+│   │   └── ai_prompt.py              # GenAI prompt builder
+│   ├── data/                          # Sample data files (CSV/Parquet/Mapping)
+│   └── uploaded_files/               # User-uploaded and processed files
+│
+├── frontend/
+│   ├── public/                        # Static files (index.html, icons, etc.)
+│   ├── src/
+│   │   ├── components/                # Reusable UI components (tables, charts)
+│   │   ├── pages/                     # Views for each drilldown level
+│   │   ├── services/                  # Axios wrappers for API calls
+│   │   ├── App.tsx                    # Main layout + routes
+│   │   └── index.tsx                  # React entry point
+│   └── .env                           # Local API URL config
+│
+├── docker/
+│   └── Dockerfile.fastapi             # Docker config for backend
+│
+├── .env                               # Environment variables (e.g., GCP switch)
+├── requirements.txt                   # Python dependencies
+├── README.md
