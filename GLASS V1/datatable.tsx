@@ -42,26 +42,26 @@ const DataTable: React.FC<Props> = ({ selectedGL }) => {
   };
 
   return (
-    <div>
-      <h4>G/L vs Ageing</h4>
-      <div {...commonTableProps}>
-        <AgGridReact
-          {...commonTableProps}
-          rowData={summary.ageing_summary.rows}
-          columnDefs={summary.ageing_summary.columns.map((col: string) => ({ field: col }))}
-        />
-      </div>
-
-      <h4>G/L vs Division</h4>
-      <div {...commonTableProps}>
-        <AgGridReact
-          {...commonTableProps}
-          rowData={summary.division_summary.rows}
-          columnDefs={summary.division_summary.columns.map((col: string) => ({ field: col }))}
-        />
-      </div>
+  <div>
+    <h4>G/L vs Ageing</h4>
+    <div className="ag-theme-alpine" style={{ height: 300, width: '100%', marginBottom: '2rem' }}>
+      <AgGridReact
+        rowData={summary.ageing_summary.rows}
+        columnDefs={summary.ageing_summary.columns.map((col: string) => ({ field: col }))}
+        domLayout={'autoHeight' as 'autoHeight'}
+      />
     </div>
-  );
-};
+
+    <h4>G/L vs Division</h4>
+    <div className="ag-theme-alpine" style={{ height: 300, width: '100%', marginBottom: '2rem' }}>
+      <AgGridReact
+        rowData={summary.division_summary.rows}
+        columnDefs={summary.division_summary.columns.map((col: string) => ({ field: col }))}
+        domLayout={'autoHeight' as 'autoHeight'}
+      />
+    </div>
+  </div>
+);
+
 
 export default DataTable;
