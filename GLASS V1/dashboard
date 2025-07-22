@@ -1,0 +1,24 @@
+import React, { useState } from 'react';
+import FileUploader from '../components/FileUploader';
+import GLFilter from '../components/GLFilter';
+
+const Dashboard: React.FC = () => {
+  const [fileUploaded, setFileUploaded] = useState(false);
+
+  return (
+    <div style={{ display: 'flex' }}>
+      <div style={{ flex: 1, padding: '1rem' }}>
+        <FileUploader onUploadSuccess={() => setFileUploaded(true)} />
+        {fileUploaded && <GLFilter />}
+      </div>
+
+      {/* Right side panel for AI summary */}
+      <div style={{ width: '300px', padding: '1rem', background: '#f9f9f9' }}>
+        <h3>AI Summary</h3>
+        <p>Select a drilldown to see AI insights.</p>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
