@@ -1,0 +1,42 @@
+import React, { useState } from 'react';
+import axios from 'axios';
+
+const FileUploader: React.FC<{ onUploadSuccess: () => void }> = ({ onUploadSuccess }) => {
+  const [uploading, setUploading] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setStatus(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post('http://localhost:8000/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      setStatus(response.data.message);
+      onUploadSuccess();
+    } catch (error: any) {
+      setStatus(error.response?.data?.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div style={{ marginBottom: '1rem' }}>
+      <h3>Upload ABAP CSV File</h3>
+      <input type="file" accept=".csv" onChange={handleUpload} disabled={uploading} />
+      {uploading && <p>Uploading...</p>}
+      {status && <p>{status}</p>}
+    </div>
+  );
+};
+
+export default FileUploader;
