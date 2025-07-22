@@ -1,0 +1,25 @@
+financial_analysis_project/
+├── backend/
+│   ├── api/
+│   │   ├── __init__.py
+│   │   └── endpoints.py
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── data_processing.py
+│   │   └── ai_summary.py
+│   ├── main.py
+│   ├── requirements.txt
+│   └── division_mapping.xlsx
+└── frontend/
+    ├── public/
+    │   └── index.html
+    ├── src/
+    │   ├── components/
+    │   │   ├── AISummary.js
+    │   │   ├── DataTable.js
+    │   │   ├── Filters.js
+    │   │   └── FileUpload.js
+    │   ├── App.css
+    │   ├── App.js
+    │   └── index.js
+    └── package.json
