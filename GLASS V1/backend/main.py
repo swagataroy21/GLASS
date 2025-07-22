@@ -62,3 +62,76 @@ def load_default_file():
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+
+@app.get("/summary-tables")
+def summary_tables(gl_account: str = Query(...), current_date: str = Query(None)):
+    try:
+        df = pl.read_parquet(PARQUET_FILE)
+
+        if current_date is None:
+            current_date = datetime.now().strftime("%Y-%m-%d")
+        current_dt = datetime.strptime(current_date, "%Y-%m-%d")
+
+        # Filter by GL
+        df = df.filter(pl.col("G/L Account") == gl_account)
+
+        # Parse Posting Date and compute Ageing
+        df = df.with_columns([
+            (pl.col("Posting Date").str.strptime(pl.Date, "%Y-%m-%d", strict=False)).alias("posting_dt")
+        ])
+
+        def classify_age(posting_date):
+            if posting_date is None:
+                return "Unknown"
+            delta = (current_dt - posting_date).days
+            if delta < 180:
+                return "<6 months"
+            elif delta < 365:
+                return "6 months - 1 year"
+            elif delta < 730:
+                return "1 - 2 years"
+            elif delta < 1095:
+                return "2 - 3 years"
+            elif delta < 1825:
+                return "3 - 5 years"
+            else:
+                return ">5 years"
+
+        df = df.with_columns([
+            df["posting_dt"].apply(classify_age).alias("Ageing")
+        ])
+
+        # Join with mapping
+        if os.path.exists(MAPPING_FILE):
+            mapping_df = pl.read_csv(MAPPING_FILE)
+            df = df.join(mapping_df, left_on="Business Area", right_on="Business Area", how="left")
+            df = df.with_columns([
+                pl.when(pl.col("Division").is_null())
+                  .then("Others")
+                  .otherwise(pl.col("Division")).alias("Division")
+            ])
+        else:
+            df = df.with_columns([pl.lit("Others").alias("Division")])
+
+        # Table 1: GL vs Ageing
+        table1 = (
+            df.groupby(["G/L Account", "Ageing"])
+              .agg([pl.col("Amount in Local Currency").sum().alias("Total Amount")])
+              .sort(["Ageing"])
+        )
+
+        # Table 2: GL vs Division
+        table2 = (
+            df.groupby(["G/L Account", "Division"])
+              .agg([pl.col("Amount in Local Currency").sum().alias("Total Amount")])
+              .sort(["Division"])
+        )
+
+        return {
+            "table1": table1.to_dicts(),
+            "table2": table2.to_dicts(),
+        }
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+
