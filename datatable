@@ -1,0 +1,28 @@
+import React from 'react';
+import { AgGridReact } from 'ag-grid-react';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
+
+interface Props {
+  title: string;
+  data: { columns: string[]; rows: any[] };
+  onCellClick?: (params: any) => void;
+}
+
+const DataTable: React.FC<Props> = ({ title, data, onCellClick }) => {
+  return (
+    <div>
+      <h3>{title}</h3>
+      <div className="ag-theme-alpine" style={{ height: 300, width: '100%', marginBottom: '2rem' }}>
+        <AgGridReact
+          rowData={data.rows}
+          columnDefs={data.columns.map((col: string) => ({ field: col }))}
+          domLayout={'autoHeight' as 'autoHeight'}
+          onCellClicked={onCellClick}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default DataTable;
