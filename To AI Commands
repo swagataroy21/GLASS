@@ -32,3 +32,5 @@ IV) Now same for 'Vendor Code' and 'Vendir Name' in one table (if blank mention 
 
 8. Tech Stack: Already Discussed.  
 
+
+npm install axios ag-grid-community ag-grid-react chart.js react-chartjs-2
