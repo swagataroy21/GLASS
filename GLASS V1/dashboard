@@ -1,18 +1,24 @@
 import React, { useState } from 'react';
 import FileUploader from '../components/FileUploader';
 import GLFilter from '../components/GLFilter';
+import DataTable from '../components/DataTable';
 
 const Dashboard: React.FC = () => {
   const [fileUploaded, setFileUploaded] = useState(false);
+  const [selectedGL, setSelectedGL] = useState<string | null>(null);
 
   return (
     <div style={{ display: 'flex' }}>
       <div style={{ flex: 1, padding: '1rem' }}>
         <FileUploader onUploadSuccess={() => setFileUploaded(true)} />
-        {fileUploaded && <GLFilter />}
+        {fileUploaded && (
+          <>
+            <GLFilter onGLSelected={(gl) => setSelectedGL(gl)} />
+            {selectedGL && <DataTable selectedGL={selectedGL} />}
+          </>
+        )}
       </div>
 
-      {/* Right side panel for AI summary */}
       <div style={{ width: '300px', padding: '1rem', background: '#f9f9f9' }}>
         <h3>AI Summary</h3>
         <p>Select a drilldown to see AI insights.</p>
