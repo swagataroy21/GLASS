@@ -1,0 +1,23 @@
+Files: It will have the file upload option at the main screen top right corner. If file is uploaded, show success/error message and progress. Another division_mapping.xlsx file wil be stored in local directory. 
+
+1. Input data: It will be in CSV but convert it to parquet in code if needed. The CSV will have these columns from ACDOCA:
+ZUONR;BELNR;CO_BELNR;RBUSA;BLART;BLDAT;BSCHL;HSL;SGTXT;AWREF;AUGBL;GJAHR;REBZJ;GKONT;LIFNR;LIFNR_NAME;KUNNR;KUNNR_NAME;RACCT;KOART;HKTID;RCNTR;KDGRP;POPER;PRCTR;UMSKZ;VALUT;BUDAT;AWREF_REV;AWITEM_REV;USNAM;SBUSA;RASSC;WERKS;EBELN;FISCYEARPER;AUGDT;DABRZ;RLDNR
+All aggregations will be performed on the HSL field.
+
+In the other excel there will be columns : 'Division' and 'Business Area'. This will be tagged to 1st excel's business area (RBUSA). All the Business area will be tagged to some division. If something is not tagged, mark it as Others.
+
+2. Filters: Users will initially be given a drop down of all the available G/L Account Numbers present in the file (RACCT), they will select one and then all the operations will start. This is the first level of filter. 
+
+3. Derived Colums:
+Logic 1: Based on the 'Posting date' and another date (picked up by a date picker in frontend, default current system date) - it will check the no. Of days and classify the data into differnet categories: <6 months, 6months to 1 year, 1-2 years, 2-3 years, 3-5 years, >5 years. This will be the Ageing column.
+Logic 2: in the other excel there will be a 'Division' to 'Business Area' Mapping. All the Business area will be tagged to some division. If something is not tagged, mark it as Others. So division will be added to that.
+
+4. Categorization/Aggregation: Group by will have all columns based on the logic. Sum will have to performed on column Amount in Local Currency.
+
+5. Drill Down Logic: Will be given later. Firstly show the data based on that GL into 2 Tables. 1. Selected GL vs Ageing.
+2. Selected GL vs Division. 
+
+6. Frontend UI: I want mostly tables. The UI should be professional, with blue and white colours.
+
+7. Gen AI summary: Create a panel on the right side of the screen saying AI summary and points. It should send the 2 tables visible on the screen and send the data to AI summariseand point out what needs attention. 
+8. Tech Stack: React Frontend, Python Backend using FastAPI, use polars if necessary.  
