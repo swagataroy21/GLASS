@@ -1,0 +1,31 @@
+import React, { useState } from 'react';
+import axios from 'axios';
+
+const FileUpload: React.FC = () => {
+  const [message, setMessage] = useState('');
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      setMessage('Uploading...');
+      const response = await axios.post('http://localhost:8000/upload', formData);
+      setMessage(response.data.message);
+    } catch (error) {
+      setMessage('Upload failed');
+    }
+  };
+
+  return (
+    <div>
+      <input type="file" accept=".csv" onChange={handleFileChange} />
+      <p>{message}</p>
+    </div>
+  );
+};
+
+export default FileUpload;
