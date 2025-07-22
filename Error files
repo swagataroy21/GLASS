@@ -1,0 +1,118 @@
+File Uploader
+
+import React, { useState } from 'react';
+import axios from 'axios';
+
+const FileUpload: React.FC = () => {
+  const [message, setMessage] = useState('');
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      setMessage('Uploading...');
+      const response = await axios.post('http://localhost:8000/upload', formData);
+      setMessage(response.data.message);
+    } catch (error) {
+      setMessage('Upload failed');
+    }
+  };
+
+  return (
+    <div>
+      <input type="file" accept=".csv" onChange={handleFileChange} />
+      <p>{message}</p>
+    </div>
+  );
+};
+
+export default FileUpload;
+
+GL Filter
+
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+
+interface Props {
+  onSelect: (glAccount: string) => void;
+}
+
+const GLFilter: React.FC<Props> = ({ onSelect }) => {
+  const [accounts, setAccounts] = useState<string[]>([]);
+
+  useEffect(() => {
+    axios.get('http://localhost:8000/gl-accounts').then(res => {
+      setAccounts(res.data.gl_accounts);
+    });
+  }, []);
+
+  return (
+    <select onChange={e => onSelect(e.target.value)}>
+      <option>Select G/L Account</option>
+      {accounts.map(a => (
+        <option key={a} value={a}>{a}</option>
+      ))}
+    </select>
+  );
+};
+
+export default GLFilter;
+
+App.tsx
+
+import React, { useState } from 'react';
+import FileUpload from './components/FileUploader';
+import GLFilter from './components/GLFilter';
+import DataTable from './components/DataTable';
+import axios from 'axios';
+
+const App: React.FC = () => {
+  const [summary, setSummary] = useState<any>(null);
+  const [selectedGL, setSelectedGL] = useState('');
+  const [drillData, setDrillData] = useState<any>(null);
+
+  const fetchSummary = (glAccount: string) => {
+    axios
+      .get(`http://localhost:8000/filtered-summary?gl_account=${glAccount}`)
+      .then(res => setSummary(res.data));
+  };
+
+  const handleGLSelect = (gl: string) => {
+    setSelectedGL(gl);
+    fetchSummary(gl);
+  };
+
+  const handleDrillClick = (params: any) => {
+    const ageing = params.data.Ageing;
+    const division = params.data.Division;
+
+    axios
+      .get(`http://localhost:8000/drilldown1?gl_account=${selectedGL}&ageing=${ageing}&division=${division}`)
+      .then(res => setDrillData(res.data));
+  };
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>ABAP Data Analyzer</h2>
+      <FileUpload />
+      <GLFilter onSelect={handleGLSelect} />
+
+      {summary && (
+        <>
+          <DataTable title="GL vs Ageing" data={summary.ageing_summary} onCellClick={handleDrillClick} />
+          <DataTable title="GL vs Division" data={summary.division_summary} onCellClick={handleDrillClick} />
+        </>
+      )}
+
+      {drillData && (
+        <DataTable title="Drilldown I - GL + Ageing + Division" data={drillData} />
+      )}
+    </div>
+  );
+};
+
+export default App;
