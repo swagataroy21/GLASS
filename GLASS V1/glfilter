@@ -1,0 +1,52 @@
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+
+type Props = {
+  onGLSelected?: (gl: string) => void;
+};
+
+const GLFilter: React.FC<Props> = ({ onGLSelected }) => {
+  const [glAccounts, setGlAccounts] = useState<string[]>([]);
+  const [selectedGL, setSelectedGL] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchGLAccounts = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get('http://localhost:8000/gl-accounts');
+        setGlAccounts(response.data.gl_accounts);
+      } catch (error) {
+        console.error('Failed to load G/L accounts', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGLAccounts();
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setSelectedGL(value);
+    if (onGLSelected) onGLSelected(value);
+  };
+
+  return (
+    <div style={{ marginTop: '1rem' }}>
+      <h4>Select G/L Account</h4>
+      {loading ? (
+        <p>Loading G/L Accounts...</p>
+      ) : (
+        <select onChange={handleChange} value={selectedGL ?? ''}>
+          <option value="" disabled>Select a G/L Account</option>
+          {glAccounts.map((gl) => (
+            <option key={gl} value={gl}>{gl}</option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+};
+
+export default GLFilter;
