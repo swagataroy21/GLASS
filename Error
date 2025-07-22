@@ -1,0 +1,26 @@
+ERROR in src/api/backend.ts
+TS1208: 'backend.ts' cannot be compiled under '--isolatedModules' because it is considered a global script file. Add an import, export, or an empty 'export {}' statement to make it a module.
+
+ERROR in src/components/SummaryPanel.tsx
+TS1208: 'SummaryPanel.tsx' cannot be compiled under '--isolatedModules' because it is considered a global script file. Add an import, export, or an empty 'export {}' statement to make it a module.
+
+ERROR in src/pages/Dashboard.tsx:12:23
+TS2322: Type '{ onUploadSuccess: () => void; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'onUploadSuccess' does not exist on type 'IntrinsicAttributes'.
+    10 |     <div style={{ display: 'flex' }}>
+    11 |       <div style={{ flex: 1, padding: '1rem' }}>
+  > 12 |         <FileUploader onUploadSuccess={() => setFileUploaded(true)} />
+       |                       ^^^^^^^^^^^^^^^
+    13 |         {fileUploaded && <GLFilter />}
+    14 |       </div>
+    15 |
+
+ERROR in src/pages/Dashboard.tsx:13:27
+TS2741: Property 'onSelect' is missing in type '{}' but required in type 'Props'.
+    11 |       <div style={{ flex: 1, padding: '1rem' }}>
+    12 |         <FileUploader onUploadSuccess={() => setFileUploaded(true)} />
+  > 13 |         {fileUploaded && <GLFilter />}
+       |                           ^^^^^^^^
+    14 |       </div>
+    15 |
+    16 |       {/* Right side panel for AI summary */}
