@@ -1,0 +1,385 @@
+*&---------------------------------------------------------------------*
+*& Report YMFAR_GL_ANALYSIS_V1
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ymfar_gl_analysis_v1.
+TABLES: acdoca.
+TYPES: BEGIN OF ty_gl,
+         zuonr       TYPE ymfav_gl_analysis-zuonr,
+         belnr       TYPE ymfav_gl_analysis-belnr,
+         co_belnr    TYPE ymfav_gl_analysis-co_belnr,
+         rbusa       TYPE ymfav_gl_analysis-rbusa,
+         blart       TYPE ymfav_gl_analysis-blart,
+         bldat       TYPE ymfav_gl_analysis-bldat,
+         bschl       TYPE ymfav_gl_analysis-bschl,
+         hsl         TYPE ymfav_gl_analysis-hsl,  "acdoca-hsl,
+         sgtxt       TYPE ymfav_gl_analysis-sgtxt,
+         awref       TYPE ymfav_gl_analysis-awref,
+         augbl       TYPE ymfav_gl_analysis-augbl,
+         gjahr       TYPE ymfav_gl_analysis-gjahr,
+         rebzj       TYPE ymfav_gl_analysis-rebzj,
+         gkont       TYPE ymfav_gl_analysis-gkont,
+         lifnr       TYPE acdoca-lifnr,
+         lifnr_name  TYPE ymfav_gl_analysis-lifnr_name,
+         kunnr       TYPE ymfav_gl_analysis-kunnr,
+         kunnr_name  TYPE ymfav_gl_analysis-kunnr_name,
+         racct       TYPE ymfav_gl_analysis-racct,
+         koart       TYPE ymfav_gl_analysis-koart,
+         hktid       TYPE ymfav_gl_analysis-hktid,
+         rcntr       TYPE ymfav_gl_analysis-rcntr,
+         kdgrp       TYPE ymfav_gl_analysis-kdgrp,
+         poper       TYPE ymfav_gl_analysis-poper,
+         prctr       TYPE ymfav_gl_analysis-prctr,
+         umskz       TYPE ymfav_gl_analysis-umskz,
+         valut       TYPE ymfav_gl_analysis-valut,
+         budat       TYPE ymfav_gl_analysis-postingdate,
+         awref_rev   TYPE ymfav_gl_analysis-awref_rev,
+         awitem_rev  TYPE ymfav_gl_analysis-awitem_rev,
+         usnam       TYPE ymfav_gl_analysis-usnam,
+         sbusa       TYPE ymfav_gl_analysis-sbusa,
+         rassc       TYPE ymfav_gl_analysis-rassc,
+         werks       TYPE ymfav_gl_analysis-werks,
+         ebeln       TYPE ymfav_gl_analysis-ebeln,
+         fiscyearper TYPE ymfav_gl_analysis-fiscyearper,
+         augdt       TYPE ymfav_gl_analysis-augdt,
+         dabrz       TYPE ymfav_gl_analysis-dabrz,
+         rldnr       TYPE ymfav_gl_analysis-rldnr,
+       END OF ty_gl.
+DATA: lv_rowcount      TYPE i VALUE 0,
+      lv_filecount     TYPE i VALUE 1,
+      lv_limit         TYPE i VALUE 1000000,  " 1 million rows per file
+      lv_filename      TYPE string,
+      lv_fullpath      TYPE string,
+      lv_line          TYPE string,
+      lv_header        TYPE string,
+      lv_current_racct TYPE racct,
+      lv_prev_racct    TYPE racct,
+      ls_gl            TYPE ty_gl,
+      lt_file_chunk    TYPE STANDARD TABLE OF ty_gl,
+      lv_dir           TYPE string,
+      lv_timestamp     TYPE string,
+      lt_csv_data TYPE STANDARD TABLE OF string.
+
+
+DATA: lv_date TYPE d,
+      lv_time TYPE t.
+
+*DATA : BEGIN OF it_header OCCURS 0,
+*         line(50) TYPE c,
+*       END OF it_header.
+
+DATA: it_header TYPE STANDARD TABLE OF string. "WITH EMPTY KEY.
+
+FIELD-SYMBOLS: <fs_gl> TYPE ty_gl.
+DATA: p_lines TYPE i.
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE TEXT-001.
+  SELECT-OPTIONS: p_racct FOR acdoca-racct OBLIGATORY NO INTERVALS.
+SELECTION-SCREEN END OF BLOCK b1.
+
+START-OF-SELECTION.
+  PERFORM select_folder.
+*  PERFORM download_data.
+
+FORM select_folder.
+
+  DESCRIBE TABLE p_racct LINES p_lines.
+
+  IF p_lines > 20.
+    MESSAGE 'Please select less than 20 GLs' TYPE 'I'.
+  ELSE.
+*   --- Select folder
+    cl_gui_frontend_services=>directory_browse(
+  CHANGING
+    selected_folder = lv_dir
+  EXCEPTIONS
+    OTHERS = 1 ).
+
+    IF lv_dir IS INITIAL.
+      MESSAGE 'No folder selected.' TYPE 'E'.
+    ENDIF.
+
+*    PERFORM create_header.
+    CONCATENATE
+    'Assignment Number' 'Document Number' 'Controlling Doc No.' 'Business Area'
+    'Document Type' 'Document Date' 'Posting Key' 'Amount in Local Currency'
+    'Text' 'Reference' 'Clearing Document' 'Fiscal Year' 'Reference Year'
+    'Offsetting Account' 'Vendor Code' 'Vendor Name' 'Customer Code' 'Customer Name'
+    'G/L Account' 'Account Type' 'House Bank' 'Cost Center' 'Customer Group'
+    'Period' 'Profit Center' 'Special G/L Indicator' 'Value Date' 'Posting Date'
+    'Reversal Ref' 'Reversal Item' 'User' 'Segment BUSA' 'Recovery Account'
+    'Plant' 'PO Number' 'Year/Period' 'Clearing Date' 'Reference Date' 'Ledger'
+    INTO lv_header SEPARATED BY ';'.
+    APPEND lv_header TO it_header.
+    PERFORM collect_data.
+
+  ENDIF.
+ENDFORM.
+FORM collect_data.
+
+  DATA: lv_sql_cursor TYPE cursor.
+  DATA: lv_done TYPE abap_bool VALUE abap_false.
+  OPEN CURSOR WITH HOLD @lv_sql_cursor FOR
+    SELECT *
+    FROM ymfav_gl_analysis
+    WHERE racct IN @p_racct "OR @p_racct IS INITIAL
+    ORDER BY racct.
+  DO.
+    FETCH NEXT CURSOR lv_sql_cursor INTO ls_gl.
+    IF sy-subrc <> 0.
+      lv_done = abap_true.
+    ENDIF.
+    IF lv_done = abap_false.
+
+      IF lv_prev_racct IS INITIAL.
+        lv_prev_racct = ls_gl-racct.
+      ENDIF.
+
+      IF lv_prev_racct <> ls_gl-racct AND lv_rowcount >= lv_limit.
+
+        " Get current date and time
+        lv_date = sy-datum.
+        lv_time = sy-uzeit.
+        CLEAR: lv_timestamp.
+
+        " Create custom format: DD.MM.YYYY HH:MM:SS
+        CONCATENATE lv_date+6(2) lv_date+4(2) lv_date(4) ' ' lv_time(2) ':' lv_time+2(2) ':' lv_time+4(2) INTO lv_timestamp.
+        REPLACE ALL OCCURRENCES OF ':' IN lv_timestamp WITH ''.
+        REPLACE ALL OCCURRENCES OF '-' IN lv_timestamp WITH ''.
+        REPLACE ALL OCCURRENCES OF '.' IN lv_timestamp WITH ''.
+        CONDENSE lv_timestamp.
+
+        " Dump current chunk
+        lv_filename = |GL_DUMP_{ lv_filecount }_{ lv_timestamp }.csv|.
+        CONCATENATE lv_dir '\' lv_filename INTO lv_fullpath.
+        CALL METHOD cl_gui_frontend_services=>gui_download
+          EXPORTING
+            filename              = lv_fullpath
+            filetype              = 'ASC'
+            write_field_separator = 'X'
+            trunc_trailing_blanks = 'X'
+            fieldnames            = it_header
+          CHANGING
+            data_tab              = lt_file_chunk
+          EXCEPTIONS
+            OTHERS                = 1.
+        CLEAR: lt_file_chunk, lv_rowcount.
+        ADD 1 TO lv_filecount.
+      ENDIF.
+      APPEND ls_gl TO lt_file_chunk.
+
+      ADD 1 TO lv_rowcount.
+
+      lv_prev_racct = ls_gl-racct.
+
+      IF lv_rowcount = lv_limit.
+
+        " Get current date and time
+        lv_date = sy-datum.
+        lv_time = sy-uzeit.
+        CLEAR: lv_timestamp.
+        " Create custom format: DD.MM.YYYY HH:MM:SS
+        CONCATENATE lv_date+6(2) lv_date+4(2) lv_date(4) lv_time(2) ':' lv_time+2(2) ':' lv_time+4(2) INTO lv_timestamp.
+        REPLACE ALL OCCURRENCES OF ':' IN lv_timestamp WITH ''.
+        REPLACE ALL OCCURRENCES OF '-' IN lv_timestamp WITH ''.
+        REPLACE ALL OCCURRENCES OF '.' IN lv_timestamp WITH ''.
+        CONDENSE lv_timestamp.
+        lv_filename = |GL_DUMP_{ lv_filecount }_{ lv_timestamp }.csv|.
+        "CONCATENATE 'GL_DUMP_' lv_filecount '_' lv_timestamp '.csv' INTO lv_filename.
+        CONCATENATE lv_dir '\' lv_filename INTO lv_fullpath.
+        CALL METHOD cl_gui_frontend_services=>gui_download
+          EXPORTING
+            filename              = lv_fullpath
+            filetype              = 'ASC'
+            write_field_separator = 'X'
+            trunc_trailing_blanks = 'X'
+            fieldnames            = it_header
+          CHANGING
+            data_tab              = lt_file_chunk
+          EXCEPTIONS
+            OTHERS                = 1.
+        CLEAR: lt_file_chunk, lv_rowcount.
+        ADD 1 TO lv_filecount.
+      ENDIF.
+
+    ELSE.
+      " Dump final chunk if any
+      IF lt_file_chunk IS NOT INITIAL.
+        " Get current date and time
+        lv_date = sy-datum.
+        lv_time = sy-uzeit.
+        CLEAR: lv_timestamp.
+        " Create custom format: DD.MM.YYYY HH:MM:SS
+        CONCATENATE lv_date+6(2) lv_date+4(2) lv_date(4) lv_time(2) ':' lv_time+2(2) ':' lv_time+4(2) INTO lv_timestamp.
+        REPLACE ALL OCCURRENCES OF ':' IN lv_timestamp WITH ''.
+        REPLACE ALL OCCURRENCES OF '-' IN lv_timestamp WITH ''.
+        REPLACE ALL OCCURRENCES OF '.' IN lv_timestamp WITH ''.
+        CONDENSE lv_timestamp.
+        lv_filename = |GL_DUMP_{ lv_filecount }_{ lv_timestamp }.csv|.
+        "CONCATENATE 'GL_DUMP_' lv_filecount '_' lv_timestamp '.csv' INTO lv_filename.
+        CONCATENATE lv_dir '\' lv_filename INTO lv_fullpath.
+
+
+        CALL FUNCTION 'SAP_CONVERT_TO_CSV_FORMAT'
+         EXPORTING
+           I_FIELD_SEPERATOR          = ';'
+           I_LINE_HEADER              = '' "lv_header
+*           I_FILENAME                 = lv_fullpath
+*           I_APPL_KEEP                = ' '
+          TABLES
+            i_tab_sap_data             = lt_file_chunk
+         CHANGING
+           I_TAB_CONVERTED_DATA       = lt_csv_data
+         EXCEPTIONS
+           CONVERSION_FAILED          = 1
+           OTHERS                     = 2
+           .
+*
+        IF sy-subrc <> 0.
+* Implement suitable error handling here
+        ENDIF.
+
+        CALL METHOD cl_gui_frontend_services=>gui_download
+          EXPORTING
+            filename              = lv_fullpath
+            filetype              = 'ASC'
+*            write_field_separator = 'X'
+*            trunc_trailing_blanks = 'X'
+            fieldnames            = it_header
+          CHANGING
+            data_tab              = lt_csv_data
+          EXCEPTIONS
+            OTHERS                = 1.
+                  .
+        IF sy-subrc <> 0.
+* Implement suitable error handling here
+        ENDIF.
+      ENDIF.
+      EXIT.
+    ENDIF.
+  ENDDO.
+  CLOSE CURSOR lv_sql_cursor.
+
+ENDFORM.
+
+FORM create_header.
+
+  APPEND 'Assignment Number'           TO it_header.
+  APPEND 'Document Number'             TO it_header.
+  APPEND 'Controlling Doc No.'         TO it_header.
+  APPEND 'Business Area'               TO it_header.
+  APPEND 'Document Type'               TO it_header.
+  APPEND 'Document Date'               TO it_header.
+  APPEND 'Posting Key'                 TO it_header.
+  APPEND 'Amount in Local Currency'    TO it_header.
+  APPEND 'Text'                        TO it_header.
+  APPEND 'Reference'                   TO it_header.
+  APPEND 'Clearing Document'           TO it_header.
+  APPEND 'Fiscal Year'                 TO it_header.
+  APPEND 'Reference Year'              TO it_header.
+  APPEND 'Offsetting Account'          TO it_header.
+  APPEND 'Vendor Code'                 TO it_header.
+  APPEND 'Vendor Name'                 TO it_header.
+  APPEND 'Customer Code'               TO it_header.
+  APPEND 'Customer Name'               TO it_header.
+  APPEND 'G/L Account'                 TO it_header.
+  APPEND 'Account Type'                TO it_header.
+  APPEND 'House Bank'                  TO it_header.
+  APPEND 'Cost Center'                 TO it_header.
+  APPEND 'Customer Group'              TO it_header.
+  APPEND 'Period'                      TO it_header.
+  APPEND 'Profit Center'               TO it_header.
+  APPEND 'Special G/L Indicator'       TO it_header.
+  APPEND 'Value Date'                  TO it_header.
+  APPEND 'Posting Date'                TO it_header.
+  APPEND 'Reversal Ref'                TO it_header.
+  APPEND 'Reversal Item'               TO it_header.
+  APPEND 'User'                        TO it_header.
+  APPEND 'Segment BUSA'                TO it_header.
+  APPEND 'Recovery Account'            TO it_header.
+  APPEND 'Plant'                       TO it_header.
+  APPEND 'PO Number'                   TO it_header.
+  APPEND 'Year/Period'                 TO it_header.
+  APPEND 'Clearing Date'               TO it_header.
+  APPEND 'Reference Date'              TO it_header.
+  APPEND 'Ledger'                      TO it_header.
+
+*  it_header-line = 'Branch/Alloc.'.
+*  APPEND it_header.
+*  it_header-line = 'Accounting Document Number'.
+*  APPEND it_header.
+*  it_header-line = 'Controlling Document Number'.
+*  APPEND it_header.
+*  it_header-line = 'Business Area'.
+*  APPEND it_header.
+*  it_header-line = 'Document Type'.
+*  APPEND it_header.
+*  it_header-line = 'Document Date'.
+*  APPEND it_header.
+*  it_header-line = 'Posting Key'.
+*  APPEND it_header.
+*  it_header-line = 'Amount in Local Currency'.
+*  APPEND it_header.
+*  it_header-line = 'Item Text'.
+*  APPEND it_header.
+*  it_header-line = 'Reference Document Number'.
+*  APPEND it_header.
+*  it_header-line = 'Clearing Document Number'.
+*  APPEND it_header.
+*  it_header-line = 'Fiscal Year'.
+*  APPEND it_header.
+*  it_header-line = 'Reference Fiscal Year'.
+*  APPEND it_header.
+*  it_header-line = 'Offsetting Account'.
+*  APPEND it_header.
+*  it_header-line = 'Vendor Number'.
+*  APPEND it_header.
+*  it_header-line = 'Vendor Name'.
+*  APPEND it_header.
+*  it_header-line = 'Customer Number'.
+*  APPEND it_header.
+*  it_header-line = 'Customer Name'.
+*  APPEND it_header.
+*  it_header-line = 'G/L Account Number'.
+*  APPEND it_header.
+*  it_header-line = 'Account Type'.
+*  APPEND it_header.
+*  it_header-line = 'Trading Partner ID'.
+*  APPEND it_header.
+*  it_header-line = 'Cost Center'.
+*  APPEND it_header.
+*  it_header-line = 'Customer Group'.
+*  APPEND it_header.
+*  it_header-line = 'Posting Period'.
+*  APPEND it_header.
+*  it_header-line = 'Profit Center'.
+*  APPEND it_header.
+*  it_header-line = 'Special G/L Indicator'.
+*  APPEND it_header.
+*  it_header-line = 'Value Date'.
+*  APPEND it_header.
+*  it_header-line = 'Posting Date'.
+*  APPEND it_header.
+*  it_header-line = 'Reference for Reversal'.
+*  APPEND it_header.
+*  it_header-line = 'Reversal Item Reference'.
+*  APPEND it_header.
+*  it_header-line = 'User Name'.
+*  APPEND it_header.
+*  it_header-line = 'Segment Business Area'.
+*  APPEND it_header.
+*  it_header-line = 'Recovery Account'.
+*  APPEND it_header.
+*  it_header-line = 'Plant'.
+*  APPEND it_header.
+*  it_header-line = 'Purchase Order Number'.
+*  APPEND it_header.
+*  it_header-line = 'Fiscal Year/Period'.
+*  APPEND it_header.
+*  it_header-line = 'Clearing Date'.
+*  APPEND it_header.
+*  it_header-line = 'Reference Date'.
+*  APPEND it_header.
+*  it_header-line = 'Ledger'.
+*  APPEND it_header.
+ENDFORM.
