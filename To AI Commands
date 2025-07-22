@@ -34,3 +34,15 @@ IV) Now same for 'Vendor Code' and 'Vendir Name' in one table (if blank mention 
 
 
 npm install axios ag-grid-community ag-grid-react chart.js react-chartjs-2
+
+
+
+No overload matches this call.
+  Overload 1 of 2, '(props: AgGridReactProps<any>): AgGridReact<any>', gave the following error.
+    Type '{ rowData: any; columnDefs: any; className: string; style: { height: number; width: string; marginBottom: string; }; domLayout: string; }' is not assignable to type 'Readonly<AgGridReactProps<any>>'.
+      Types of property 'domLayout' are incompatible.
+        Type 'string' is not assignable to type 'DomLayoutType | undefined'.
+  Overload 2 of 2, '(props: AgGridReactProps<any>, context: any): AgGridReact<any>', gave the following error.
+    Type '{ rowData: any; columnDefs: any; className: string; style: { height: number; width: string; marginBottom: string; }; domLayout: string; }' is not assignable to type 'Readonly<AgGridReactProps<any>>'.
+      Types of property 'domLayout' are incompatible.
+        Type 'string' is not assignable to type 'DomLayoutType | undefined'.
